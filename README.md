@@ -1926,5 +1926,37 @@ Assumes your DashboardService has methods createDashboard() and updateDashboard(
 
 Let me know if you also want styles (.css) or need help wiring these into your routes.
 
+onSubmit(): void {
+  if (this.dashboardForm.invalid) return;
 
+  const payload: Dashboardd = {
+    ...this.dashboardData,
+    ...this.dashboardForm.value,
+    createdBy: 'Admin',
+    createdDate: this.dashboardData?.createdDate || new Date(),
+    modifiedBy: 'Admin',
+    modifiedDate: new Date(),
+    id: this.dashboardData?.id ?? 0
+  };
+
+  if (this.isEditMode) {
+    this.dashboardService.updateDashboard(payload.id!, payload).subscribe({
+      next: () => {
+        alert('Dashboard updated successfully!');
+        this.dashboardUpdated.emit();
+        this.cancelEdit.emit();
+      },
+      error: () => alert('Failed to update dashboard.')
+    });
+  } else {
+    this.dashboardService.createDashboard(payload).subscribe({
+      next: () => {
+        alert('Dashboard created successfully!');
+        this.dashboardUpdated.emit();
+        this.cancelEdit.emit();
+      },
+      error: () => alert('Failed to create dashboard.')
+    });
+  }
+}
 
