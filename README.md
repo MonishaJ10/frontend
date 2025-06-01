@@ -1244,3 +1244,88 @@ And include Material icons in index.html:
 Let me know if you'd like the full updated blank-dashboard code or want help passing the selected dashboard data to it.
 
 
+blank.dashboard.comp.ts
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css'],
+})
+export class BlankDashboardComponent implements OnInit {
+  @Input() dashboardData: Dashboardd | null = null;
+  @Output() cancelEdit = new EventEmitter<void>();
+  @Output() dashboardUpdated = new EventEmitter<void>();
+
+  dashboard: Dashboardd = {
+    id: 0,
+    name: '',
+    description: '',
+    public: false,
+    createdBy: '',
+    createdDate: '',
+  };
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    if (this.dashboardData) {
+      this.dashboard = { ...this.dashboardData };
+    }
+  }
+
+  save(): void {
+    if (this.dashboard.id) {
+      // Edit mode
+      this.dashboardService.updateDashboard(this.dashboard.id, this.dashboard).subscribe({
+        next: () => {
+          this.dashboardUpdated.emit();
+          this.cancelEdit.emit();
+        },
+        error: () => alert('Failed to update dashboard')
+      });
+    } else {
+      // New dashboard
+      this.dashboardService.addDashboard(this.dashboard).subscribe({
+        next: () => {
+          this.dashboardUpdated.emit();
+          this.cancelEdit.emit();
+        },
+        error: () => alert('Failed to create dashboard')
+      });
+    }
+  }
+
+  cancel(): void {
+    this.cancelEdit.emit();
+  }
+}
+
+blank-dashboard.comp.html
+<div>
+  <mat-form-field>
+    <input matInput placeholder="Name" [(ngModel)]="dashboard.name">
+  </mat-form-field>
+
+  <mat-form-field>
+    <textarea matInput placeholder="Description" [(ngModel)]="dashboard.description"></textarea>
+  </mat-form-field>
+
+  <mat-checkbox [(ngModel)]="dashboard.public">Public</mat-checkbox>
+
+  <button mat-raised-button color="primary" (click)="save()">Save</button>
+  <button mat-raised-button (click)="cancel()">Cancel</button>
+</div>
+
+dashboard.service.ts
+updateDashboard(id: number, dashboard: Dashboardd): Observable<any> {
+  return this.http.put(`${this.apiUrl}/${id}`, dashboard);
+}
+
+deleteDashboard(id: number): Observable<void> {
+  return this.http.delete<void>(`${this.apiUrl}/${id}`);
+}
+
+
