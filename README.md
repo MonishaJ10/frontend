@@ -1566,3 +1566,12 @@ Let me know if you want me to also help you wire this to the edit icon in the ma
 
 
 
+addDashboard(dashboard: Partial<Dashboardd>) {
+  return this.http.post<Dashboardd>(this.baseUrl, dashboard);
+}
+
+updateDashboard(id: string, dashboard: Partial<Dashboardd>) {
+  return this.http.put<Dashboardd>(`${this.baseUrl}/${id}`, dashboard);
+}
+
+
