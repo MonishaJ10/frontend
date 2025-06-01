@@ -814,7 +814,7 @@ onNewDashboard() {
 console.log('New Dashboard clicked');
 }}
 
-
+.
 app.component.html
 <app-header
 [openedModule]="openedModule"
@@ -1062,3 +1062,185 @@ import AppComponent } from './app.component';
 export const appConfig: ApplicationConfig = {
 
 providers: [provideHttpClient(),provideZoneChangeDetection({ eventCoalescing: true }), provideRouter (routes), provideClientHydration (
+
+
+____________________________________
+Thanks for the clarification! Since you're using standalone components (no AppModule), we’ll import Angular Material modules directly in the component where they're needed.
+
+Here’s a complete update to support edit (pen icon) and delete (trash icon) functionality using Angular Material UI:
+
+
+---
+
+✅ 1. Update manage-dashboard.component.ts
+
+Add the HTTP calls for delete and edit. We’ll simulate an “edit” by passing data to the blank dashboard component.
+
+import { Component, EventEmitter, Output, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgIf } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { DashboardService } from './dashboard.service';
+import { Dashboardd } from './dashboard.model';
+import { BlankDashboardComponent } from './blank-dashboard/blank-dashboard.component';
+import { InteractiveDashboardComponent } from './interactive-dashboard/interactive-dashboard.component';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    NgIf,
+    MatIconModule,
+    MatButtonModule,
+    BlankDashboardComponent,
+    InteractiveDashboardComponent
+  ],
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css']
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: Dashboardd[] = [];
+  selectedDashboard: Dashboardd | null = null;
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+
+  @Output() closeDashboard = new EventEmitter<void>();
+  @Output() selectDashboard = new EventEmitter<string>();
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards() {
+    this.dashboardService.getDashboards().subscribe({
+      next: (data) => (this.tableData = data),
+      error: () => alert('Failed to load dashboards'),
+    });
+  }
+
+  onClose(): void {
+    this.closeDashboard.emit();
+  }
+
+  onSelectDashboard(dashboardType: string): void {
+    if (dashboardType === 'blank') {
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    } else if (dashboardType === 'interactive') {
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+      this.selectDashboard.emit(dashboardType);
+    }
+  }
+
+  onEditDashboard(dashboard: Dashboardd): void {
+    this.selectedDashboard = dashboard;
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+  }
+
+  onDeleteDashboard(id: number): void {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      this.dashboardService.deleteDashboard(id).subscribe({
+        next: () => {
+          this.tableData = this.tableData.filter(d => d.id !== id);
+          alert('Dashboard deleted successfully.');
+        },
+        error: () => alert('Delete failed'),
+      });
+    }
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+  }
+
+  onNewDashboard(): void {
+    this.selectedDashboard = null;
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+  }
+}
+
+
+---
+
+✅ 2. Update manage-dashboard.component.html
+
+Add Material icons for edit and delete:
+
+<!-- Inside your <tr *ngFor="let row of tableData"> loop -->
+
+<tr *ngFor="let row of tableData">
+  <td *ngFor="let header of tableHeaders">
+    <ng-container [ngSwitch]="header.key">
+      <span *ngSwitchCase="'createdDate'">{{ row.createdDate | date: 'short' }}</span>
+      <span *ngSwitchCase="'modifiedDate'">{{ row.modifiedDate | date: 'short' }}</span>
+      <span *ngSwitchCase="'public'">{{ row.public ? 'Yes' : 'No' }}</span>
+      <span *ngSwitchCase="'action'">
+        <button mat-icon-button color="primary" (click)="onEditDashboard(row)">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button color="warn" (click)="onDeleteDashboard(row.id)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </span>
+      <span *ngSwitchDefault>{{ row[header.key] }}</span>
+    </ng-container>
+  </td>
+</tr>
+
+
+---
+
+✅ 3. Update dashboard.service.ts
+
+Make sure it includes delete and update logic:
+
+deleteDashboard(id: number): Observable<void> {
+  return this.http.delete<void>(`${this.apiUrl}/${id}`);
+}
+
+updateDashboard(id: number, dashboard: Dashboardd): Observable<Dashboardd> {
+  return this.http.put<Dashboardd>(`${this.apiUrl}/${id}`, dashboard);
+}
+
+
+---
+
+✅ 4. Update blank-dashboard.component.ts (example)
+
+If you're reusing the blank dashboard for both creating and editing:
+
+@Input() dashboardData: Dashboardd | null = null;
+
+ngOnInit() {
+  if (this.dashboardData) {
+    this.form.patchValue(this.dashboardData); // Assuming you use ReactiveForms
+  }
+}
+
+
+---
+
+✅ 5. Install Angular Material icons if not done
+
+Run:
+
+npm install @angular/material @angular/cdk
+
+And include Material icons in index.html:
+
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+
+---
+
+Let me know if you'd like the full updated blank-dashboard code or want help passing the selected dashboard data to it.
+
+
