@@ -1578,112 +1578,210 @@ updateDashboard(id: string, dashboard: Partial<Dashboardd>) {
 
 
 
-Great! To wire the edit icon (🖉) in your Manage Dashboard Table so that it opens the blank-dashboard component pre-filled for editing, follow this step-by-step plan.
 
 
----
-
-✅ Step-by-Step Integration
-
-🧩 Step 1: In manage-dashboard.component.html
-
-Add an edit icon to each row in your dashboard table:
-
-<tr *ngFor="let dashboard of dashboards">
-  <td>{{ dashboard.name }}</td>
-  <td>{{ dashboard.description }}</td>
-  <td>
-    <!-- 🖉 Edit icon -->
-    <button mat-icon-button color="primary" (click)="editDashboard(dashboard)">
-      <mat-icon>edit</mat-icon>
-    </button>
-    <!-- 🗑️ Delete icon -->
-    <button mat-icon-button color="warn" (click)="deleteDashboard(dashboard.id)">
-      <mat-icon>delete</mat-icon>
-    </button>
-  </td>
-</tr>
 
 
----
+<!-- manage-dashboard.component.html -->
+<div class="manage-dashboard-container">
+  <!-- Main Manage Dashboard View -->
+  <div *ngIf="!showBlankDashboard && !showInteractiveDashboard">
+    <!-- Header -->
+    <div class="header">
+      <h2 class="title">Manage Dashboard</h2>
+      <button class="close-btn" (click)="onClose()">&times;</button>
+    </div>
 
-🧠 Step 2: In manage-dashboard.component.ts
+    <!-- New Dashboard Button -->
+    <div class="new-dashboard-section">
+      <button class="new-dashboard-btn" (click)="onNewDashboard()">
+        <span class="plus-icon">+</span>
+        New Dashboard
+      </button>
+    </div>
 
-Add the logic to open the blank-dashboard component and pass data to it.
+    <!-- All Dashboards Section -->
+    <div class="all-dashboards-section">
+      <h3 class="section-title">All Dashboards</h3>
+      <div class="table-container">
+        <table class="dashboards-table">
+          <thead>
+            <tr>
+              <th *ngFor="let header of tableHeaders">{{ header.label }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="tableData.length === 0" class="no-data-row">
+              <td [attr.colspan]="tableHeaders.length" class="no-data-cell">No Rows To Show</td>
+            </tr>
+            <tr *ngFor="let row of tableData">
+              <td *ngFor="let header of tableHeaders">
+                <ng-container [ngSwitch]="header.key">
+                  <span *ngSwitchCase="'createdDate'">{{ row.createdDate | date: 'short' }}</span>
+                  <span *ngSwitchCase="'modifiedDate'">{{ row.modifiedDate | date: 'short' }}</span>
+                  <span *ngSwitchCase="'public'">{{ row.public ? 'Yes' : 'No' }}</span>
+                  <td *ngSwitchCase="'action'">
+                    <button mat-icon-button color="primary" (click)="onEditDashboard(row)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="onDeleteDashboard(row.id)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                  <span *ngSwitchDefault>{{ row[header.key] }}</span>
+                </ng-container>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-Option 1: If you're navigating to another route (recommended for Angular apps with routing):
+  <!-- Blank Dashboard View -->
+  <div *ngIf="showBlankDashboard">
+    <app-blank-dashboard
+      [dashboardData]="editDashboardData"
+      (cancelEdit)="onBackToManage()"
+      (dashboardUpdated)="loadDashboards()">
+    </app-blank-dashboard>
+  </div>
 
+  <!-- Interactive Dashboard View -->
+  <div *ngIf="showInteractiveDashboard" class="dashboard-view">
+    <div class="dashboard-header">
+      <button class="back-btn" (click)="onBackToManage()">Back to Manage</button>
+      <button class="close-btn" (click)="onClose()">&times;</button>
+    </div>
+    <div class="placeholder">Interactive Dashboard Component will be rendered here</div>
+  </div>
+</div>
+
+
+Here is the full updated manage-dashboard.component.ts file to pair with the HTML:
+
+import { Component, EventEmitter, Output } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommonModule, NgIf } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { DashboardService } from './dashboard.service';
+import { Dashboardd } from './dashboard.model';
+import { BlankDashboardComponent } from './blank-dashboard/blank-dashboard.component';
+import { InteractiveDashboardComponent } from './interactive-dashboard/interactive-dashboard.component';
 
-constructor(private router: Router) {}
+@Component({
+  selector: 'app-manage-dashboard',
+  standalone: true,
+  imports: [
+    MatIconModule,
+    MatButtonModule,
+    BlankDashboardComponent,
+    InteractiveDashboardComponent,
+    NgIf,
+    CommonModule
+  ],
+  templateUrl: './manage-dashboard.component.html',
+  styleUrls: ['./manage-dashboard.component.css']
+})
+export class ManageDashboardComponent {
+  tableData: Dashboardd[] = [];
+  selectedDashboard: Dashboardd | null = null;
+  editDashboardData: Dashboardd | null = null;
 
-editDashboard(dashboard: Dashboardd) {
-  this.router.navigate(['/create-dashboard'], { state: { editData: dashboard } });
-}
+  dashboards = [
+    {
+      id: 'blank',
+      name: 'Blank Dashboard',
+      icon: '',
+      description: 'Start with a blank canvas'
+    },
+    {
+      id: 'interactive',
+      name: 'Interactive Dashboard',
+      icon: '',
+      description: 'Pre-built interactive components'
+    }
+  ];
 
+  tableHeaders = [
+    { key: 'name', label: 'Name' },
+    { key: 'description', label: 'Description' },
+    { key: 'createdBy', label: 'Created By' },
+    { key: 'createdDate', label: 'Created Date' },
+    { key: 'modifiedBy', label: 'Modified By' },
+    { key: 'modifiedDate', label: 'Modified Date' },
+    { key: 'public', label: 'Public' },
+    { key: 'action', label: 'Action' }
+  ];
 
----
+  @Output() closeDashboard = new EventEmitter<void>();
+  @Output() selectDashboard = new EventEmitter<string>();
 
-🧰 Step 3: In blank-dashboard.component.ts
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
 
-Receive the data in the constructor:
+  constructor(
+    private dashboardService: DashboardService,
+    private router: Router
+  ) {}
 
-constructor(private router: Router) {
-  const navigation = this.router.getCurrentNavigation();
-  const state = navigation?.extras?.state as { editData?: Dashboardd };
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
 
-  if (state?.editData) {
-    this.isEditMode = true;
-    this.editDashboardData = state.editData;
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe({
+      next: (data) => (this.tableData = data),
+      error: () => alert('Failed to load dashboards')
+    });
+  }
 
-    // Pre-fill the form
-    this.formData.name = state.editData.name;
-    this.formData.description = state.editData.description;
-    this.formData.visibility = state.editData.public ? 'Public' : 'Private';
-    // You may also want to pre-fill chart settings if applicable
+  onClose(): void {
+    this.closeDashboard.emit();
+  }
+
+  onSelectDashboard(dashboardType: string): void {
+    if (dashboardType === 'blank') {
+      this.showBlankDashboard = true;
+      this.showInteractiveDashboard = false;
+    } else if (dashboardType === 'interactive') {
+      this.showInteractiveDashboard = true;
+      this.showBlankDashboard = false;
+    }
+    this.selectDashboard.emit(dashboardType);
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+    this.editDashboardData = null;
+  }
+
+  onNewDashboard(): void {
+    this.editDashboardData = null;
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+  }
+
+  onEditDashboard(dashboard: Dashboardd): void {
+    this.editDashboardData = dashboard;
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+  }
+
+  onDeleteDashboard(id: number): void {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      this.dashboardService.deleteDashboard(id).subscribe({
+        next: () => {
+          this.tableData = this.tableData.filter((d) => d.id !== id);
+          alert('Dashboard deleted successfully.');
+        },
+        error: () => alert('Delete failed')
+      });
+    }
   }
 }
 
-Make sure you define isEditMode: boolean = false; and editDashboardData?: Dashboardd; at the top.
-
-Then in your submit() or save() function:
-
-submit() {
-  const dashboardPayload = {
-    name: this.formData.name,
-    description: this.formData.description,
-    public: this.formData.visibility === 'Public',
-    createdBy: 'admin', // or current user
-    // include other fields like chart configs
-  };
-
-  if (this.isEditMode && this.editDashboardData) {
-    this.dashboardService
-      .updateDashboard(this.editDashboardData.id.toString(), dashboardPayload)
-      .subscribe(() => this.router.navigate(['/manage-dashboard']));
-  } else {
-    this.dashboardService
-      .createDashboard(dashboardPayload)
-      .subscribe(() => this.router.navigate(['/manage-dashboard']));
-  }
-}
-
-
----
-
-✅ Recap of What You Achieve
-
-🖉 Clicking edit opens blank-dashboard with pre-filled values.
-
-📝 Edit mode updates an existing dashboard via HTTP.
-
-🆕 Create mode still works for new dashboards.
-
-
-
----
-
-Let me know if your app uses modals instead of route-based navigation — I can adapt this for modal flow too.
-
-
+Let me know if you'd like the updated blank-dashboard.component.ts and .html as well to support the edit functionality you've just wired.
 
