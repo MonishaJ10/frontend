@@ -1575,3 +1575,115 @@ updateDashboard(id: string, dashboard: Partial<Dashboardd>) {
 }
 
 
+
+
+
+Great! To wire the edit icon (🖉) in your Manage Dashboard Table so that it opens the blank-dashboard component pre-filled for editing, follow this step-by-step plan.
+
+
+---
+
+✅ Step-by-Step Integration
+
+🧩 Step 1: In manage-dashboard.component.html
+
+Add an edit icon to each row in your dashboard table:
+
+<tr *ngFor="let dashboard of dashboards">
+  <td>{{ dashboard.name }}</td>
+  <td>{{ dashboard.description }}</td>
+  <td>
+    <!-- 🖉 Edit icon -->
+    <button mat-icon-button color="primary" (click)="editDashboard(dashboard)">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <!-- 🗑️ Delete icon -->
+    <button mat-icon-button color="warn" (click)="deleteDashboard(dashboard.id)">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </td>
+</tr>
+
+
+---
+
+🧠 Step 2: In manage-dashboard.component.ts
+
+Add the logic to open the blank-dashboard component and pass data to it.
+
+Option 1: If you're navigating to another route (recommended for Angular apps with routing):
+
+import { Router } from '@angular/router';
+
+constructor(private router: Router) {}
+
+editDashboard(dashboard: Dashboardd) {
+  this.router.navigate(['/create-dashboard'], { state: { editData: dashboard } });
+}
+
+
+---
+
+🧰 Step 3: In blank-dashboard.component.ts
+
+Receive the data in the constructor:
+
+constructor(private router: Router) {
+  const navigation = this.router.getCurrentNavigation();
+  const state = navigation?.extras?.state as { editData?: Dashboardd };
+
+  if (state?.editData) {
+    this.isEditMode = true;
+    this.editDashboardData = state.editData;
+
+    // Pre-fill the form
+    this.formData.name = state.editData.name;
+    this.formData.description = state.editData.description;
+    this.formData.visibility = state.editData.public ? 'Public' : 'Private';
+    // You may also want to pre-fill chart settings if applicable
+  }
+}
+
+Make sure you define isEditMode: boolean = false; and editDashboardData?: Dashboardd; at the top.
+
+Then in your submit() or save() function:
+
+submit() {
+  const dashboardPayload = {
+    name: this.formData.name,
+    description: this.formData.description,
+    public: this.formData.visibility === 'Public',
+    createdBy: 'admin', // or current user
+    // include other fields like chart configs
+  };
+
+  if (this.isEditMode && this.editDashboardData) {
+    this.dashboardService
+      .updateDashboard(this.editDashboardData.id.toString(), dashboardPayload)
+      .subscribe(() => this.router.navigate(['/manage-dashboard']));
+  } else {
+    this.dashboardService
+      .createDashboard(dashboardPayload)
+      .subscribe(() => this.router.navigate(['/manage-dashboard']));
+  }
+}
+
+
+---
+
+✅ Recap of What You Achieve
+
+🖉 Clicking edit opens blank-dashboard with pre-filled values.
+
+📝 Edit mode updates an existing dashboard via HTTP.
+
+🆕 Create mode still works for new dashboards.
+
+
+
+---
+
+Let me know if your app uses modals instead of route-based navigation — I can adapt this for modal flow too.
+
+
+
