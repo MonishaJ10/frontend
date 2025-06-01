@@ -1996,3 +1996,284 @@ export class DashboardService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
+
+
+
+
+
+You're seeing Angular compiler errors related to missing modules in your standalone component BlankDashboardComponent.
+
+
+---
+
+🧩 Root Cause
+
+When using standalone components, you must explicitly import everything Angular normally includes in an NgModule, such as:
+
+CommonModule → for structural directives like *ngIf, *ngSwitch, etc.
+
+FormsModule → for [(ngModel)]
+
+MatFormFieldModule, MatLabel, etc. → for Angular Material components
+
+
+
+---
+
+✅ Full Fix: Update BlankDashboardComponent
+
+Below is the fully updated blank-dashboard.component.ts setup with correct imports, including Angular Material and Common/Forms modules:
+
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  standalone: true,
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css'],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSelectModule
+  ]
+})
+export class BlankDashboardComponent implements OnInit {
+  @Input() dashboardData: Dashboardd | null = null;
+  @Output() dashboardUpdated = new EventEmitter<void>();
+  @Output() cancelEdit = new EventEmitter<void>();
+
+  dashboardForm!: FormGroup;
+  isEditMode = false;
+
+  steps = ['Basic Info', 'Chart Type'];
+  currentStep = 0;
+
+  chartTypes = ['Bar', 'Pie', 'Line', 'Column'];
+  selectedChart = 'Bar';
+  aggregationField = '';
+
+  constructor(
+    private fb: FormBuilder,
+    private dashboardService: DashboardService
+  ) {}
+
+  ngOnInit(): void {
+    this.dashboardForm = this.fb.group({
+      name: ['', Validators.required],
+      description: [''],
+      public: [false],
+      createdBy: ['admin']
+    });
+
+    if (this.dashboardData) {
+      this.isEditMode = true;
+      this.dashboardForm.patchValue(this.dashboardData);
+    }
+  }
+
+  nextStep(): void {
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+    }
+  }
+
+  previousStep(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+    }
+  }
+
+  onSubmit(): void {
+    if (this.dashboardForm.invalid) return;
+
+    const payload = {
+      ...this.dashboardForm.value,
+      chartType: this.selectedChart,
+      aggregation: this.aggregationField
+    };
+
+    if (this.isEditMode && this.dashboardData) {
+      this.dashboardService.updateDashboard(this.dashboardData.id, payload).subscribe({
+        next: () => {
+          alert('Dashboard updated!');
+          this.dashboardUpdated.emit();
+        },
+        error: () => alert('Failed to update')
+      });
+    } else {
+      this.dashboardService.createDashboard(payload).subscribe({
+        next: () => {
+          alert('Dashboard created!');
+          this.dashboardUpdated.emit();
+        },
+        error: () => alert('Failed to create')
+      });
+    }
+  }
+
+  cancel(): void {
+    this.cancelEdit.emit();
+  }
+}
+
+
+---
+
+✅ blank-dashboard.component.html Sample
+
+Here’s a simplified matching HTML snippet that uses Angular Material and ngModel, and avoids all your current issues:
+
+<div class="dashboard-form">
+  <form [formGroup]="dashboardForm">
+    <!-- Step 1: Basic Info -->
+    <div *ngIf="currentStep === 0">
+      <mat-form-field appearance="fill">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description"></textarea>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="public">Public</mat-checkbox>
+    </div>
+
+    <!-- Step 2: Chart Config -->
+    <div *ngIf="currentStep === 1">
+      <mat-form-field appearance="fill">
+        <mat-label>Chart Type</mat-label>
+        <mat-select [(ngModel)]="selectedChart" name="selectedChart">
+          <mat-option *ngFor="let type of chartTypes" [value]="type">{{ type }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Aggregation Field</mat-label>
+        <input matInput [(ngModel)]="aggregationField" name="aggregation" />
+      </mat-form-field>
+    </div>
+
+    <!-- Step Navigation -->
+    <div class="actions">
+      <button mat-button type="button" (click)="previousStep()" *ngIf="currentStep > 0">Back</button>
+      <button mat-button type="button" (click)="nextStep()" *ngIf="currentStep < steps.length - 1">Next</button>
+      <button mat-raised-button color="primary" type="button" (click)="onSubmit()" *ngIf="currentStep === steps.length - 1">
+        {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+      <button mat-button type="button" (click)="cancel()">Cancel</button>
+    </div>
+  </form>
+</div>
+
+
+---
+
+✅ Summary
+
+Your errors were caused by missing CommonModule, FormsModule, and Angular Material modules.
+
+Use @Component({ standalone: true, imports: [...] }) and list all required modules.
+
+Always use ngModel with FormsModule.
+
+Use formControlName with ReactiveFormsModule.
+
+
+Would you like me to also post the final version of the dashboard.service.ts to match this component logic?
+
+Here is the final version of dashboard.service.ts to work seamlessly with your BlankDashboardComponent. This service handles creating, updating, fetching, and deleting dashboards via HTTP.
+
+
+---
+
+✅ dashboard.service.ts
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { Dashboardd } from './dashboard.model';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class DashboardService {
+  private apiUrl = 'http://localhost:3000/dashboards'; // ✅ Replace with your real backend URL
+
+  constructor(private http: HttpClient) {}
+
+  getDashboards(): Observable<Dashboardd[]> {
+    return this.http.get<Dashboardd[]>(this.apiUrl);
+  }
+
+  getDashboardById(id: number): Observable<Dashboardd> {
+    return this.http.get<Dashboardd>(`${this.apiUrl}/${id}`);
+  }
+
+  createDashboard(dashboard: Partial<Dashboardd>): Observable<Dashboardd> {
+    return this.http.post<Dashboardd>(this.apiUrl, dashboard);
+  }
+
+  updateDashboard(id: number, dashboard: Partial<Dashboardd>): Observable<Dashboardd> {
+    return this.http.put<Dashboardd>(`${this.apiUrl}/${id}`, dashboard);
+  }
+
+  deleteDashboard(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+}
+
+
+---
+
+✅ Matching dashboard.model.ts Example
+
+Just to be thorough, here’s a simple model you can use:
+
+export interface Dashboardd {
+  id: number;
+  name: string;
+  description: string;
+  public: boolean;
+  createdBy: string;
+  chartType?: string;
+  aggregation?: string;
+}
+
+
+---
+
+🧪 Final Check
+
+Make sure your HttpClientModule is imported in the root or main standalone component that bootstraps your app:
+
+import { bootstrapApplication } from '@angular/platform-browser';
+import { AppComponent } from './app/app.component';
+import { HttpClientModule } from '@angular/common/http';
+
+bootstrapApplication(AppComponent, {
+  providers: [],
+  imports: [HttpClientModule],
+});
+
+
+---
+
+Let me know if you’d like to integrate auth headers, environment-based URLs, or test data with json-server or mock APIs.
+
