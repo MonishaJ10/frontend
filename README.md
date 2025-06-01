@@ -1960,3 +1960,39 @@ onSubmit(): void {
   }
 }
 
+
+
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { Dashboardd } from './dashboard.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DashboardService {
+  private apiUrl = 'http://localhost:3000/dashboards'; // Replace with your actual API
+
+  constructor(private http: HttpClient) {}
+
+  getDashboards(): Observable<Dashboardd[]> {
+    return this.http.get<Dashboardd[]>(this.apiUrl);
+  }
+
+  getDashboardById(id: number): Observable<Dashboardd> {
+    return this.http.get<Dashboardd>(`${this.apiUrl}/${id}`);
+  }
+
+  createDashboard(dashboard: Dashboardd): Observable<Dashboardd> {
+    return this.http.post<Dashboardd>(this.apiUrl, dashboard);
+  }
+
+  updateDashboard(id: number, dashboard: Partial<Dashboardd>): Observable<Dashboardd> {
+    return this.http.put<Dashboardd>(`${this.apiUrl}/${id}`, dashboard);
+  }
+
+  deleteDashboard(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+}
