@@ -1331,3 +1331,238 @@ deleteDashboard(id: number): Observable<void> {
 
 
 
+
+
+Here is the updated full blank-dashboard.component.html and blank-dashboard.component.ts to support both:
+
+Creating a new dashboard
+
+Editing an existing dashboard using the modal with multi-step navigation
+
+
+
+---
+
+✅ blank-dashboard.component.ts
+
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css']
+})
+export class BlankDashboardComponent {
+  @Input() editDashboardData?: Dashboardd;
+  @Output() closeModalEvent = new EventEmitter<void>();
+
+  formData: any = {
+    name: '',
+    description: '',
+    visibility: 'Public'
+  };
+
+  currentStep = 0;
+  showModal = true;
+  isFullscreen = false;
+
+  selectedChart = '';
+  title = '';
+  model = '';
+  groupBy = '';
+  aggregation = '';
+  aggregationField = '';
+  groupByOptions = ['Option 1', 'Option 2'];
+  aggregationTypes = ['Count', 'Sum'];
+  aggregationFields = ['Field1', 'Field2'];
+
+  steps = ['General Info', 'Chart Setup', 'Layout', 'Review'];
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    if (this.editDashboardData) {
+      this.formData.name = this.editDashboardData.name;
+      this.formData.description = this.editDashboardData.description;
+      this.formData.visibility = this.editDashboardData.public ? 'Public' : 'Private';
+    }
+  }
+
+  nextStep(): void {
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+    }
+  }
+
+  toggleFullscreen(): void {
+    this.isFullscreen = !this.isFullscreen;
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+    this.closeModalEvent.emit();
+  }
+
+  submit(): void {
+    const dashboardPayload = {
+      name: this.formData.name,
+      description: this.formData.description,
+      public: this.formData.visibility === 'Public',
+      createdBy: 'admin', // Replace with actual user context
+    };
+
+    if (this.editDashboardData?.id) {
+      this.dashboardService.updateDashboard(this.editDashboardData.id, dashboardPayload)
+        .subscribe(() => {
+          alert('Dashboard updated');
+          this.closeModal();
+        });
+    } else {
+      this.dashboardService.addDashboard(dashboardPayload)
+        .subscribe(() => {
+          alert('Dashboard created');
+          this.closeModal();
+        });
+    }
+  }
+
+  setChartType(chart: string): void {
+    this.selectedChart = chart;
+  }
+
+  addCard(): void {
+    alert('Card added');
+  }
+}
+
+
+---
+
+✅ blank-dashboard.component.html
+
+<div *ngIf="showModal" class="modal-container" [class.fullscreen]="isFullscreen">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="header-left">
+        <span class="material-symbols-outlined icon">dashboard</span>
+        <h2>{{ formData.name || 'New Dashboard' }}</h2>
+      </div>
+      <div class="header-actions">
+        <button (click)="toggleFullscreen()" title="Fullscreen">🗖</button>
+        <button (click)="closeModal()" title="Close">X</button>
+      </div>
+    </div>
+
+    <div class="step-tracker">
+      <div *ngFor="let step of steps; let i = index" class="step-item" [class.active]="i === currentStep">
+        <div class="step-circle">{{ i + 1 }}</div>
+        <span class="step-label">{{ step }}</span>
+      </div>
+    </div>
+
+    <div class="modal-content">
+      <!-- Step 1: General Info -->
+      <form *ngIf="currentStep === 0" class="form-section">
+        <div class="form-group">
+          <label>Name <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="formData.name" name="name" placeholder="Add a name" required />
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea [(ngModel)]="formData.description" name="description" placeholder="Mention description..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Mark Dashboard As <span class="required">*</span></label>
+          <div class="radio-options">
+            <label>
+              <input type="radio" [(ngModel)]="formData.visibility" name="visibility" value="Public" />
+              <span class="custom-radio"></span> Public
+            </label>
+            <label>
+              <input type="radio" [(ngModel)]="formData.visibility" name="visibility" value="Private" />
+              <span class="custom-radio"></span> Private
+            </label>
+          </div>
+          <small>Select <strong>Private</strong> to assign this dashboard to one or more users or teams.</small>
+        </div>
+      </form>
+
+      <!-- Step 2: Chart Config -->
+      <div *ngIf="currentStep === 1" class="content-step" style="display: flex;">
+        <div class="sidebar" style="flex: 1; padding: 1rem;">
+          <h4>Select Card</h4>
+          <ul>
+            <li [class.active]="selectedChart === 'bar'" (click)="setChartType('bar')">Bar Chart</li>
+            <li [class.active]="selectedChart === 'pie'" (click)="setChartType('pie')">Pie Chart</li>
+          </ul>
+        </div>
+
+        <div class="chart-preview" style="flex: 2; padding: 1rem;">
+          <ng-container [ngSwitch]="selectedChart">
+            <div *ngSwitchCase="'bar'">Bar chart config UI here</div>
+            <div *ngSwitchCase="'pie'">Pie chart config UI here</div>
+          </ng-container>
+
+          <label>Group By</label>
+          <select [(ngModel)]="groupBy" name="groupBy" required>
+            <option *ngFor="let group of groupByOptions" [value]="group">{{ group }}</option>
+          </select>
+
+          <label>Aggregation</label>
+          <select [(ngModel)]="aggregation" name="aggregation">
+            <option *ngFor="let agg of aggregationTypes" [value]="agg">{{ agg }}</option>
+          </select>
+
+          <label>Aggregation Field</label>
+          <select [(ngModel)]="aggregationField" name="aggregationField">
+            <option *ngFor="let field of aggregationFields" [value]="field">{{ field }}</option>
+          </select>
+
+          <button class="btn add-btn" style="margin-top: 10px;" (click)="addCard()">Add</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Layout -->
+      <div *ngIf="currentStep === 2" class="content-step">
+        <h3>Layout Preview</h3>
+        <p>Card layout UI here</p>
+      </div>
+
+      <!-- Step 4: Review -->
+      <div *ngIf="currentStep === 3" class="content-step">
+        <h4>Review & Confirm</h4>
+        <p><strong>Name:</strong> {{ formData.name }}</p>
+        <p><strong>Description:</strong> {{ formData.description }}</p>
+        <p><strong>Visibility:</strong> {{ formData.visibility }}</p>
+        <p><strong>Chart Type:</strong> {{ selectedChart }}</p>
+        <p><strong>Group By:</strong> {{ groupBy }}</p>
+        <p><strong>Aggregation:</strong> {{ aggregation }}</p>
+        <p><strong>Field:</strong> {{ aggregationField }}</p>
+        <button class="btn primary" (click)="submit()">Finish</button>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn secondary" (click)="prevStep()" *ngIf="currentStep > 0">Back</button>
+      <button class="btn primary" (click)="nextStep()" *ngIf="currentStep < 3">Next</button>
+    </div>
+  </div>
+</div>
+
+
+---
+
+Let me know if you want me to also help you wire this to the edit icon in the manage dashboard table.
+
+
+
