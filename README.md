@@ -1329,3 +1329,135 @@ deleteDashboard(id: number): Observable<void> {
 }
 
 
+
+
+Thanks for sharing your full blank-dashboard.component.html. You're working with a multi-step dashboard creation form inside a modal, so the Material UI snippet I shared earlier should not be added as a replacement—instead, we’ll adapt your current form to support editing.
+
+
+---
+
+✅ Goal:
+
+You want to edit an existing dashboard when the pen icon is clicked, and have the form pre-filled inside this multi-step modal (blank-dashboard) for editing instead of creating a new dashboard.
+
+
+---
+
+✅ Here's What You Should Do:
+
+
+---
+
+🔧 STEP 1: Add a way to receive data when editing
+
+In your blank-dashboard.component.ts, ensure you accept an input:
+
+@Input() editDashboard?: Dashboardd;
+
+In ngOnInit (or use ngOnChanges), initialize formData with it:
+
+ngOnInit() {
+  if (this.editDashboard) {
+    this.formData = { ...this.editDashboard };
+    this.isEditMode = true;
+  } else {
+    this.formData = {
+      name: '',
+      description: '',
+      visibility: 'Private',
+      // Any other default fields
+    };
+    this.isEditMode = false;
+  }
+}
+
+Also add:
+
+isEditMode = false;
+
+
+---
+
+🔧 STEP 2: Make sure your form fields bind to formData
+
+You're already using:
+
+<input [(ngModel)]="formData.name" ... />
+<textarea [(ngModel)]="formData.description" ... />
+<input type="radio" [(ngModel)]="formData.visibility" ... />
+
+So as long as formData is initialized correctly in ngOnInit, it will pre-fill when editing.
+
+✅ No changes needed to this part of your HTML — it’s already bound to formData.
+
+
+---
+
+🔧 STEP 3: Add a save/update method
+
+In blank-dashboard.component.ts, modify your submit logic:
+
+submit() {
+  if (this.isEditMode && this.editDashboard?.id) {
+    this.dashboardService.updateDashboard(this.editDashboard.id, this.formData)
+      .subscribe(() => {
+        this.closeModal(); // or emit an update event
+      });
+  } else {
+    this.dashboardService.addDashboard(this.formData)
+      .subscribe(() => {
+        this.closeModal(); // or emit a creation event
+      });
+  }
+}
+
+
+---
+
+🔧 STEP 4: Open blank-dashboard in edit mode from parent component
+
+In your manage-dashboard or wherever you list dashboards with the ✏️ pen icon:
+
+<button mat-icon-button (click)="editDashboard(d)">
+  <mat-icon>edit</mat-icon>
+</button>
+
+And in manage-dashboard.component.ts:
+
+selectedDashboard: Dashboardd | null = null;
+showModal = false;
+
+editDashboard(dashboard: Dashboardd) {
+  this.selectedDashboard = dashboard;
+  this.showModal = true;
+}
+
+Then pass it to the blank-dashboard component:
+
+<app-blank-dashboard
+  *ngIf="showModal"
+  [editDashboard]="selectedDashboard"
+  (close)="showModal = false">
+</app-blank-dashboard>
+
+
+---
+
+✅ Summary
+
+You do not need to add that material-form snippet into your HTML because you already have a multi-step modal with binding (formData).
+
+The key is to pass the dashboard being edited to the component using @Input(), and use that to initialize formData in ngOnInit.
+
+Then inside your form, it will auto-populate thanks to two-way ngModel binding.
+
+Your submit() method needs to detect edit mode and call the correct service (add vs update).
+
+
+
+---
+
+Let me know if you’d like me to write your full updated blank-dashboard.component.ts file with these edits included.
+
+
+
