@@ -1785,3 +1785,146 @@ export class ManageDashboardComponent {
 
 Let me know if you'd like the updated blank-dashboard.component.ts and .html as well to support the edit functionality you've just wired.
 
+
+Here is the full, working blank-dashboard.component.ts and blank-dashboard.component.html that supports both creating a new dashboard and editing an existing one:
+
+
+---
+
+✅ blank-dashboard.component.ts
+
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatCheckboxModule
+  ],
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css']
+})
+export class BlankDashboardComponent implements OnInit {
+  @Input() dashboardData: Dashboardd | null = null;
+  @Output() cancelEdit = new EventEmitter<void>();
+  @Output() dashboardUpdated = new EventEmitter<void>();
+
+  dashboardForm!: FormGroup;
+  isEditMode = false;
+
+  constructor(
+    private fb: FormBuilder,
+    private dashboardService: DashboardService
+  ) {}
+
+  ngOnInit(): void {
+    this.isEditMode = !!this.dashboardData;
+    this.dashboardForm = this.fb.group({
+      name: [this.dashboardData?.name || ''],
+      description: [this.dashboardData?.description || ''],
+      public: [this.dashboardData?.public || false]
+    });
+  }
+
+  onSubmit(): void {
+    if (this.dashboardForm.invalid) return;
+
+    const payload: Dashboardd = {
+      ...this.dashboardData,
+      ...this.dashboardForm.value,
+      createdBy: 'Admin',
+      createdDate: this.dashboardData?.createdDate || new Date(),
+      modifiedBy: 'Admin',
+      modifiedDate: new Date(),
+      id: this.dashboardData?.id ?? 0
+    };
+
+    if (this.isEditMode) {
+      this.dashboardService.updateDashboard(payload).subscribe({
+        next: () => {
+          alert('Dashboard updated successfully!');
+          this.dashboardUpdated.emit();
+          this.cancelEdit.emit();
+        },
+        error: () => alert('Failed to update dashboard.')
+      });
+    } else {
+      this.dashboardService.createDashboard(payload).subscribe({
+        next: () => {
+          alert('Dashboard created successfully!');
+          this.dashboardUpdated.emit();
+          this.cancelEdit.emit();
+        },
+        error: () => alert('Failed to create dashboard.')
+      });
+    }
+  }
+
+  onCancel(): void {
+    this.cancelEdit.emit();
+  }
+}
+
+
+---
+
+✅ blank-dashboard.component.html
+
+<div class="blank-dashboard-form">
+  <h2>{{ isEditMode ? 'Edit Dashboard' : 'Create New Dashboard' }}</h2>
+
+  <form [formGroup]="dashboardForm" (ngSubmit)="onSubmit()">
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Dashboard Name</mat-label>
+      <input matInput formControlName="name" required />
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" required></textarea>
+    </mat-form-field>
+
+    <mat-checkbox formControlName="public">Public</mat-checkbox>
+
+    <div class="button-group">
+      <button mat-flat-button color="primary" type="submit">
+        {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+      <button mat-flat-button color="accent" type="button" (click)="onCancel()">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>
+
+
+---
+
+🧠 Notes:
+
+This component uses FormBuilder for reactive form handling.
+
+Automatically pre-fills form fields if dashboardData is passed (edit mode).
+
+Emits events back to the parent to refresh the list and hide the form.
+
+Assumes your DashboardService has methods createDashboard() and updateDashboard() returning observables.
+
+
+Let me know if you also want styles (.css) or need help wiring these into your routes.
+
+
+
