@@ -2950,3 +2950,136 @@ export class BlankDashboardComponent implements OnInit {
 }
 
 
+
+
+Great — to handle updating a dashboard instead of always creating a new one, follow this enhanced flow:
+
+
+---
+
+✅ Step-by-Step Update Support
+
+1. Distinguish between Create and Edit Modes
+
+Update BlankDashboardComponent to track if it’s in edit mode:
+
+isEditMode = false;
+
+Modify ngOnInit:
+
+ngOnInit(): void {
+  if (this.dashboardToEdit) {
+    this.isEditMode = true;
+
+    // Pre-fill form
+    this.formData.name = this.dashboardToEdit.name || '';
+    this.formData.description = this.dashboardToEdit.description || '';
+    this.formData.visibility = this.dashboardToEdit.isPublic ? 'Public' : 'Private';
+
+    this.selectedChart = this.dashboardToEdit.chartType || 'bar';
+    this.model = this.dashboardToEdit.model || '';
+    this.groupBy = this.dashboardToEdit.groupBy || '';
+    this.aggregation = this.dashboardToEdit.aggregation || '';
+    this.aggregationField = this.dashboardToEdit.aggregationField || '';
+  }
+}
+
+
+---
+
+2. Update the Submit Method
+
+Handle both create and update based on isEditMode:
+
+submitDashboard() {
+  const dashboardPayload = {
+    name: this.formData.name,
+    description: this.formData.description,
+    isPublic: this.formData.visibility === 'Public',
+    chartType: this.selectedChart,
+    model: this.model,
+    groupBy: this.groupBy,
+    aggregation: this.aggregation,
+    aggregationField: this.aggregationField
+  };
+
+  if (this.isEditMode && this.dashboardToEdit?.id) {
+    // 🔄 UPDATE existing dashboard
+    this.dashboardService.updateDashboard(this.dashboardToEdit.id, dashboardPayload).subscribe(
+      () => {
+        this.dashboardClose.emit();
+      },
+      error => console.error('Update failed', error)
+    );
+  } else {
+    // ➕ CREATE new dashboard
+    this.dashboardService.createDashboard(dashboardPayload).subscribe(
+      () => {
+        this.dashboardClose.emit();
+      },
+      error => console.error('Create failed', error)
+    );
+  }
+}
+
+
+---
+
+3. Add Update Method to Dashboard Service
+
+In your dashboard.service.ts:
+
+updateDashboard(id: string, data: any) {
+  return this.http.put(`/api/dashboards/${id}`, data);
+}
+
+Adjust the endpoint to match your backend.
+
+
+---
+
+4. Hook up the Submit Button
+
+In blank-dashboard.component.html, ensure you call submitDashboard():
+
+<button mat-raised-button color="primary" (click)="submitDashboard()">
+  {{ isEditMode ? 'Update' : 'Create' }} Dashboard
+</button>
+
+
+---
+
+✅ Optional: UX Improvements
+
+You can add a cancel/back button to emit dashboardClose:
+
+<button mat-button (click)="closeModal()">Cancel</button>
+
+
+---
+
+✅ Summary
+
+Feature	Status
+
+Distinguish edit mode	✅ isEditMode = true if editing
+Submit correct action	✅ Calls either updateDashboard() or createDashboard()
+Reuse form for both	✅ Clean UX
+Supports going back	✅ dashboardClose.emit() to return to manage view
+
+
+
+---
+
+Let me know if you want to also:
+
+Validate fields
+
+Add loading spinners
+
+Refresh the dashboard list after editing/deleting
+
+
+
+
+
