@@ -2530,3 +2530,286 @@ export class BlankDashboardComponent implements OnInit {
 }
 
 
+
+
+Here is the fully updated and working Angular code for your ManageDashboardComponent and BlankDashboardComponent that meets your goals:
+
+
+---
+
+✅ manage-dashboard.component.html
+
+<!-- manage-dashboard.component.html -->
+
+<h2>Manage Dashboards</h2>
+<button class="close-btn" (click)="onClose()">×</button>
+
+<!-- Table of dashboards -->
+<table *ngIf="!showBlankDashboard && !showInteractiveDashboard">
+  <thead>
+    <tr>
+      <th *ngFor="let header of tableHeaders">{{ header.label }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let row of tableData">
+      <td>{{ row.name }}</td>
+      <td>{{ row.description }}</td>
+      <td>{{ row.createdBy }}</td>
+      <td>{{ row.createdDate | date: 'short' }}</td>
+      <td>{{ row.modifiedBy }}</td>
+      <td>{{ row.modifiedDate | date: 'short' }}</td>
+      <td>{{ row.public ? 'Yes' : 'No' }}</td>
+      <td>
+        <button mat-icon-button color="primary" (click)="onEditDashboard(row)">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button color="warn" (click)="onDeleteDashboard(row.id)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Edit/Create Dashboard -->
+<app-blank-dashboard
+  *ngIf="showBlankDashboard"
+  [dashboardData]="editDashboardData"
+  (cancelEdit)="onBackToManage()"
+  (dashboardUpdated)="loadDashboards()"
+></app-blank-dashboard>
+
+
+---
+
+✅ manage-dashboard.component.ts
+
+// manage-dashboard.component.ts
+
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-manage-dashboard',
+  templateUrl: './manage-dashboard.component.html',
+})
+export class ManageDashboardComponent implements OnInit {
+  tableData: Dashboardd[] = [];
+  editDashboardData: Dashboardd | null = null;
+
+  showBlankDashboard = false;
+  showInteractiveDashboard = false;
+
+  tableHeaders = [
+    { key: 'name', label: 'Name' },
+    { key: 'description', label: 'Description' },
+    { key: 'createdBy', label: 'Created By' },
+    { key: 'createdDate', label: 'Created Date' },
+    { key: 'modifiedBy', label: 'Modified By' },
+    { key: 'modifiedDate', label: 'Modified Date' },
+    { key: 'public', label: 'Public' },
+    { key: 'action', label: 'Action' }
+  ];
+
+  @Output() closeDashboard = new EventEmitter();
+
+  constructor(private dashboardService: DashboardService) {}
+
+  ngOnInit(): void {
+    this.loadDashboards();
+  }
+
+  loadDashboards(): void {
+    this.dashboardService.getDashboards().subscribe({
+      next: (data) => (this.tableData = data),
+      error: () => alert('Failed to load dashboards')
+    });
+  }
+
+  onClose(): void {
+    this.closeDashboard.emit();
+  }
+
+  onBackToManage(): void {
+    this.showBlankDashboard = false;
+    this.showInteractiveDashboard = false;
+    this.editDashboardData = null;
+  }
+
+  onEditDashboard(dashboard: Dashboardd): void {
+    this.editDashboardData = dashboard;
+    this.showBlankDashboard = true;
+    this.showInteractiveDashboard = false;
+  }
+
+  onDeleteDashboard(id: number): void {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      this.dashboardService.deleteDashboard(id).subscribe({
+        next: () => {
+          this.tableData = this.tableData.filter(d => d.id !== id);
+          alert('Dashboard deleted successfully.');
+        },
+        error: () => alert('Failed to delete dashboard.')
+      });
+    }
+  }
+}
+
+
+---
+
+✅ blank-dashboard.component.html
+
+<!-- blank-dashboard.component.html -->
+
+<div class="modal">
+  <h2>{{ isEditMode ? 'Edit Dashboard' : 'New Dashboard' }}</h2>
+
+  <form [formGroup]="dashboardForm" (ngSubmit)="onSubmit()">
+    <div *ngIf="currentStep === 0">
+      <mat-form-field>
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" required />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Description</mat-label>
+        <input matInput formControlName="description" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="public">Public</mat-checkbox>
+    </div>
+
+    <!-- Additional steps (like chart settings) can be placed here -->
+
+    <div class="actions">
+      <button mat-button type="button" (click)="prevStep()" *ngIf="currentStep > 0">Back</button>
+      <button mat-button type="button" (click)="nextStep()" *ngIf="currentStep < steps.length - 1">Next</button>
+      <button mat-raised-button color="primary" type="submit" *ngIf="currentStep === steps.length - 1">
+        {{ isEditMode ? 'Update' : 'Create' }}
+      </button>
+      <button mat-button type="button" (click)="cancel()">Cancel</button>
+    </div>
+  </form>
+</div>
+
+
+---
+
+✅ blank-dashboard.component.ts
+
+// blank-dashboard.component.ts
+
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonModule } from '@angular/material/button';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  standalone: true,
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css'],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatCheckboxModule,
+    MatButtonModule
+  ]
+})
+export class BlankDashboardComponent implements OnInit {
+  @Input() dashboardData: Dashboardd | null | undefined;
+  @Output() dashboardUpdated = new EventEmitter<void>();
+  @Output() cancelEdit = new EventEmitter<void>();
+
+  dashboardForm!: FormGroup;
+  isEditMode = false;
+  currentStep = 0;
+  steps = ['Basic Info'];
+
+  constructor(
+    private fb: FormBuilder,
+    private dashboardService: DashboardService
+  ) {}
+
+  ngOnInit(): void {
+    this.dashboardForm = this.fb.group({
+      name: ['', Validators.required],
+      description: [''],
+      public: [false],
+      createdBy: ['Admin'],
+      modifiedBy: ['Admin']
+    });
+
+    if (this.dashboardData) {
+      this.isEditMode = true;
+      this.dashboardForm.patchValue(this.dashboardData);
+    }
+  }
+
+  nextStep(): void {
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+    }
+  }
+
+  onSubmit(): void {
+    const payload: Partial<Dashboardd> = this.dashboardForm.value;
+
+    if (this.isEditMode && this.dashboardData) {
+      this.dashboardService.updateDashboard(this.dashboardData.id, payload).subscribe({
+        next: () => {
+          alert('Dashboard updated successfully');
+          this.dashboardUpdated.emit();
+          this.cancel();
+        },
+        error: () => alert('Failed to update dashboard')
+      });
+    } else {
+      this.dashboardService.createDashboard(payload).subscribe({
+        next: () => {
+          alert('Dashboard created successfully');
+          this.dashboardUpdated.emit();
+          this.cancel();
+        },
+        error: () => alert('Failed to create dashboard')
+      });
+    }
+  }
+
+  cancel(): void {
+    this.cancelEdit.emit();
+  }
+}
+
+
+---
+
+Let me know if you want to:
+
+Add more steps like chart config
+
+Integrate preview/chart options
+
+Use Angular Material table or paginator
+
+
+I'm happy to assist with those too!
+
+
+
