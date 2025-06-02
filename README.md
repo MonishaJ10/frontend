@@ -2909,4 +2909,44 @@ export class BlankDashboardComponent {
 
 
 
+import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
+
+export class BlankDashboardComponent implements OnInit {
+  @Input() dashboardToEdit: any; // Input from manage-dashboard
+  @Output() dashboardClose = new EventEmitter<void>();
+
+  formData = {
+    name: '',
+    description: '',
+    visibility: 'Public'
+  };
+
+  // chart config fields
+  selectedChart = 'bar';
+  model = '';
+  groupBy = '';
+  aggregation = '';
+  aggregationField = '';
+
+  ngOnInit(): void {
+    if (this.dashboardToEdit) {
+      // Pre-fill form for editing
+      this.formData.name = this.dashboardToEdit.name || '';
+      this.formData.description = this.dashboardToEdit.description || '';
+      this.formData.visibility = this.dashboardToEdit.isPublic ? 'Public' : 'Private';
+
+      // Pre-fill chart config
+      this.selectedChart = this.dashboardToEdit.chartType || 'bar';
+      this.model = this.dashboardToEdit.model || '';
+      this.groupBy = this.dashboardToEdit.groupBy || '';
+      this.aggregation = this.dashboardToEdit.aggregation || '';
+      this.aggregationField = this.dashboardToEdit.aggregationField || '';
+    }
+  }
+
+  closeModal() {
+    this.dashboardClose.emit(); // Go back to manage dashboard
+  }
+}
+
 
