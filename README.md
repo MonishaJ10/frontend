@@ -3210,3 +3210,81 @@ public ResponseEntity<Dashboard> updateDashboard(@PathVariable Long id, @Request
     return updated.map(ResponseEntity::ok)
                   .orElse(ResponseEntity.notFound().build());
 }
+
+
+
+
+export class BlankDashboardComponent implements OnInit {
+  @Input() editData?: Dashboardd;
+  @Output() dashboardClose = new EventEmitter<void>();
+
+  isEditMode = false;
+  formData = {
+    name: '',
+    description: '',
+    visibility: 'Private'
+  };
+  selectedChart = '';
+  model = '';
+  groupBy = '';
+  aggregation = '';
+  aggregationField = '';
+
+  ngOnInit() {
+    if (this.editData) {
+      this.isEditMode = true;
+
+      // Pre-fill the form with existing dashboard data
+      this.formData = {
+        name: this.editData.name,
+        description: this.editData.description,
+        visibility: this.editData.isPublic ? 'Public' : 'Private'
+      };
+
+      this.selectedChart = this.editData.chartType;
+      this.model = this.editData.model;
+      this.groupBy = this.editData.groupBy;
+      this.aggregation = this.editData.aggregation;
+      this.aggregationField = this.editData.aggregationField;
+    }
+  }
+
+  // The rest of your submitDashboard() and other logic...
+}
+
+submitDashboard(): void {
+  const dashboardPayload: Dashboardd = {
+    name: this.formData.name,
+    description: this.formData.description,
+    isPublic: this.formData.visibility === 'Public',
+    chartType: this.selectedChart,
+    model: this.model,
+    groupBy: this.groupBy,
+    aggregation: this.aggregation,
+    aggregationField: this.aggregationField,
+    public: this.formData.visibility === 'Public',
+    createdBy: this.editData?.createdBy || 'system', // fallback if new
+    createdDate: this.editData?.createdDate || new Date().toISOString(),
+    modifiedDate: new Date().toISOString(),
+  };
+
+  if (this.isEditMode && this.editData?.id) {
+    // Update existing dashboard
+    this.dashboardService.updateDashboard(this.editData.id, dashboardPayload).subscribe({
+      next: () => {
+        console.log('Dashboard updated');
+        this.dashboardClose.emit();
+      },
+      error: (err) => console.error('Update failed', err)
+    });
+  } else {
+    // Create new dashboard
+    this.dashboardService.addDashboard(dashboardPayload).subscribe({
+      next: () => {
+        console.log('Dashboard created');
+        this.dashboardClose.emit();
+      },
+      error: (err) => console.error('Create failed', err)
+    });
+  }
+}
