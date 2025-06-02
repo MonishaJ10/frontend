@@ -3079,6 +3079,29 @@ Add loading spinners
 
 Refresh the dashboard list after editing/deleting
 
+2. Ensure Correct Object Is Sent from Component
+
+In BlankDashboardComponent, prepare the payload to match Dashboardd:
+
+const dashboardPayload: Dashboardd = {
+  name: this.formData.name,
+  description: this.formData.description,
+  isPublic: this.formData.visibility === 'Public',
+  chartType: this.selectedChart,
+  model: this.model,
+  groupBy: this.groupBy,
+  aggregation: this.aggregation,
+  aggregationField: this.aggregationField
+};
+
+Then use it in your submitDashboard():
+
+if (this.isEditMode && this.dashboardToEdit?.id) {
+  this.dashboardService.updateDashboard(this.dashboardToEdit.id, dashboardPayload).subscribe({
+    next: () => this.dashboardClose.emit(),
+    error: err => console.error('Error updating dashboard', err)
+  });
+}
 
 
 
