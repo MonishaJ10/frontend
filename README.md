@@ -2813,3 +2813,100 @@ I'm happy to assist with those too!
 
 
 
+
+import { Component, Input, EventEmitter, Output } from '@angular/core';
+
+// Add Input decorator
+@Component({
+  selector: 'app-blank-dashboard',
+  standalone: true,
+  imports: [FormsModule, CommonModule, AgChartsModule],
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css'],
+})
+export class BlankDashboardComponent {
+  @Input() editData: any;  // <-- Will hold the data from ManageDashboard
+  @Output() dashboardClose = new EventEmitter<void>();
+
+  showModal = true;
+  isFullscreen = false;
+  currentStep = 0;
+  steps = ['Initial', 'Content', 'Layout', 'Review'];
+
+  formData = {
+    name: '',
+    description: '',
+    visibility: 'Public'
+  };
+
+  selectedChart = 'bar';
+  title = '';
+  model = '';
+  groupBy = '';
+  aggregation = '';
+  aggregationField = '';
+
+  // Chart options and placeholders...
+  barChartOptions: AgChartOptions = { /*...*/ };
+  pieChartOptions: AgChartOptions = { /*...*/ };
+
+  constructor(private router: Router, private dashboardService: DashboardService) {}
+
+  ngOnInit() {
+    if (this.editData) {
+      this.formData.name = this.editData.name;
+      this.formData.description = this.editData.description;
+      this.formData.visibility = this.editData.isPublic ? 'Public' : 'Private';
+      this.model = this.editData.model;
+      this.groupBy = this.editData.groupBy;
+      this.aggregation = this.editData.aggregation;
+      this.aggregationField = this.editData.aggregationField;
+    }
+  }
+
+  submit() {
+    const dashboard = {
+      ...this.editData, // If in edit mode, keep the ID
+      name: this.formData.name,
+      description: this.formData.description,
+      createdBy: 'admin',
+      createdDate: new Date().toISOString(),
+      modifiedBy: 'admin',
+      modifiedDate: new Date().toISOString(),
+      isPublic: this.formData.visibility === 'Public',
+      model: this.model,
+      groupBy: this.groupBy,
+      aggregation: this.aggregation,
+      aggregationField: this.aggregationField,
+    };
+
+    if (this.editData) {
+      this.dashboardService.updateDashboard(dashboard).subscribe({
+        next: () => {
+          alert('Dashboard updated successfully!');
+          this.router.navigate(['/inventory/manage-dashboard']);
+        },
+        error: (err) => {
+          console.error('Failed to update dashboard:', err);
+          alert('Failed to update dashboard');
+        }
+      });
+    } else {
+      this.dashboardService.addDashboard(dashboard).subscribe({
+        next: () => {
+          alert('Dashboard saved successfully!');
+          this.router.navigate(['/inventory/manage-dashboard']);
+        },
+        error: (err) => {
+          console.error('Failed to save dashboard:', err);
+          alert('Failed to save dashboard');
+        }
+      });
+    }
+  }
+}
+
+
+
+
+
