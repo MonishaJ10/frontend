@@ -3164,3 +3164,49 @@ submitDashboard() {
     });
   }
 }
+
+
+
+submitDashboard() {
+  const dashboardPayload: Dashboardd = {
+    name: this.formData.name,
+    description: this.formData.description,
+    isPublic: this.formData.visibility === 'Public',
+    chartType: this.selectedChart,
+    model: this.model,
+    groupBy: this.groupBy,
+    aggregation: this.aggregation,
+    aggregationField: this.aggregationField,
+    public: this.formData.visibility === 'Public',
+    createdBy: 'currentUser', // Replace as needed
+    createdDate: this.isEditMode && this.dashboardToEdit?.createdDate
+      ? this.dashboardToEdit.createdDate
+      : new Date().toISOString(), // Keep original if editing
+    modifiedDate: this.isEditMode ? new Date().toISOString() : undefined // ✅ Set only on edit
+  };
+
+  if (this.isEditMode && this.dashboardToEdit?.id) {
+    this.dashboardService.updateDashboard(this.dashboardToEdit.id, dashboardPayload).subscribe({
+      next: () => this.dashboardClose.emit(),
+      error: err => console.error('Update failed', err)
+    });
+  } else {
+    this.dashboardService.addDashboard(dashboardPayload).subscribe({
+      next: () => this.dashboardClose.emit(),
+      error: err => console.error('Create failed', err)
+    });
+  }
+}
+
+
+
+@PutMapping("/{id}")
+public ResponseEntity<Dashboard> updateDashboard(@PathVariable Long id, @RequestBody Dashboard dashboard) {
+    // Optionally update the modifiedDate before calling the service
+    dashboard.setModifiedDate(LocalDateTime.now());
+
+    Optional<Dashboard> updated = dashboardService.updateDashboard(id, dashboard);
+
+    return updated.map(ResponseEntity::ok)
+                  .orElse(ResponseEntity.notFound().build());
+}
