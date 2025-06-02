@@ -3288,3 +3288,64 @@ submitDashboard(): void {
     });
   }
 }
+
+
+
+Updated ngOnInit()
+
+ngOnInit(): void {
+  if (this.editData) {
+    this.isEditMode = true;
+
+    this.formData = {
+      name: this.editData.name,
+      description: this.editData.description,
+      isPublic: this.editData.isPublic
+    };
+
+    this.selectedChart = this.editData.chartType;
+    this.model = this.editData.model;
+    this.groupBy = this.editData.groupBy;
+    this.aggregation = this.editData.aggregation;
+    this.aggregationField = this.editData.aggregationField;
+  }
+}
+
+
+---
+
+✅ 4. Updated submitDashboard()
+
+submitDashboard(): void {
+  const dashboardPayload: Dashboardd = {
+    name: this.formData.name,
+    description: this.formData.description,
+    isPublic: this.formData.isPublic,
+    chartType: this.selectedChart,
+    model: this.model,
+    groupBy: this.groupBy,
+    aggregation: this.aggregation,
+    aggregationField: this.aggregationField,
+    createdBy: this.editData?.createdBy || 'h59606',
+    createdDate: this.editData?.createdDate || new Date().toISOString(),
+    modifiedBy: 'h59606',
+    modifiedDate: new Date().toISOString()
+  };
+
+  if (this.isEditMode && this.editData?.id) {
+    this.dashboardService.updateDashboard(this.editData.id, dashboardPayload).subscribe({
+      next: () => this.dashboardClose.emit(),
+      error: err => console.error('Update failed', err)
+    });
+  } else {
+    this.dashboardService.addDashboard(dashboardPayload).subscribe({
+      next: () => this.dashboardClose.emit(),
+      error: err => console.error('Create failed', err)
+    });
+  }
+}
+
+
+---
+
+Let me know if your API expects public instead of isPublic, and I’ll update accordingly.
