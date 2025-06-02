@@ -2436,4 +2436,97 @@ blank html
   </form>
 </div>
 
+blank ts
+import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonModule } from '@angular/material/button';
+import { DashboardService } from '../dashboard.service';
+import { Dashboardd } from '../dashboard.model';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  standalone: true,
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css'],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatCheckboxModule,
+    MatButtonModule
+  ]
+})
+export class BlankDashboardComponent implements OnInit {
+  @Input() dashboardData?: Dashboardd;
+  @Output() dashboardUpdated = new EventEmitter<void>();
+  @Output() cancelEdit = new EventEmitter<void>();
+
+  dashboardForm!: FormGroup;
+  isEditMode = false;
+  currentStep = 0;
+  steps = ['Basic Info', 'Settings'];
+
+  constructor(
+    private fb: FormBuilder,
+    private dashboardService: DashboardService
+  ) {}
+
+  ngOnInit(): void {
+    this.dashboardForm = this.fb.group({
+      name: ['', Validators.required],
+      description: [''],
+      public: [false],
+      createdBy: ['Admin']
+    });
+
+    if (this.dashboardData) {
+      this.isEditMode = true;
+      this.dashboardForm.patchValue(this.dashboardData);
+    }
+  }
+
+  nextStep(): void {
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+    }
+  }
+
+  onSubmit(): void {
+    const payload: Partial<Dashboardd> = this.dashboardForm.value;
+
+    if (this.isEditMode && this.dashboardData) {
+      this.dashboardService.updateDashboard(this.dashboardData.id, payload).subscribe({
+        next: () => {
+          alert('Dashboard updated successfully');
+          this.dashboardUpdated.emit();
+        },
+        error: () => alert('Failed to update dashboard')
+      });
+    } else {
+      this.dashboardService.createDashboard(payload).subscribe({
+        next: () => {
+          alert('Dashboard created successfully');
+          this.dashboardUpdated.emit();
+        },
+        error: () => alert('Failed to create dashboard')
+      });
+    }
+  }
+
+  cancel(): void {
+    this.cancelEdit.emit();
+  }
+}
+
 
