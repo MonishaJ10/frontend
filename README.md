@@ -2277,3 +2277,163 @@ bootstrapApplication(AppComponent, {
 
 Let me know if you’d like to integrate auth headers, environment-based URLs, or test data with json-server or mock APIs.
 
+
+
+
+
+
+blank ts
+
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonModule } from '@angular/material/button';
+
+import { Dashboardd } from '../dashboard.model';
+import { DashboardService } from '../dashboard.service';
+
+@Component({
+  selector: 'app-blank-dashboard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatCheckboxModule,
+    MatButtonModule,
+  ],
+  templateUrl: './blank-dashboard.component.html',
+  styleUrls: ['./blank-dashboard.component.css'],
+})
+export class BlankDashboardComponent implements OnInit {
+  @Input() dashboardData: Dashboardd | null = null;
+  @Output() dashboardUpdated = new EventEmitter<void>();
+  @Output() cancelEdit = new EventEmitter<void>();
+
+  dashboardForm!: FormGroup;
+  currentStep = 0;
+  steps = ['Basic Info', 'Settings'];
+  isEditMode = false;
+
+  constructor(
+    private fb: FormBuilder,
+    private dashboardService: DashboardService
+  ) {}
+
+  ngOnInit(): void {
+    this.dashboardForm = this.fb.group({
+      name: ['', Validators.required],
+      description: [''],
+      public: [false]
+    });
+
+    if (this.dashboardData) {
+      this.isEditMode = true;
+      this.dashboardForm.patchValue(this.dashboardData);
+    }
+  }
+
+  nextStep(): void {
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+    }
+  }
+
+  cancel(): void {
+    this.cancelEdit.emit();
+  }
+
+  onSubmit(): void {
+    if (this.dashboardForm.invalid) return;
+
+    const payload: Partial<Dashboardd> = this.dashboardForm.value;
+
+    if (this.isEditMode && this.dashboardData?.id != null) {
+      this.dashboardService.updateDashboard(this.dashboardData.id, payload).subscribe({
+        next: () => {
+          alert('Dashboard updated successfully.');
+          this.dashboardUpdated.emit();
+          this.cancel();
+        },
+        error: () => alert('Update failed.')
+      });
+    } else {
+      this.dashboardService.createDashboard(payload).subscribe({
+        next: () => {
+          alert('Dashboard created successfully.');
+          this.dashboardUpdated.emit();
+          this.cancel();
+        },
+        error: () => alert('Creation failed.')
+      });
+    }
+  }
+}
+_______________________________________
+dashboard.service.ts
+createDashboard(dashboard: Partial<Dashboardd>): Observable<Dashboardd> {
+  return this.http.post<Dashboardd>(`${this.apiUrl}/dashboards`, dashboard);
+}
+
+updateDashboard(id: number, dashboard: Partial<Dashboardd>): Observable<Dashboardd> {
+  return this.http.put<Dashboardd>(`${this.apiUrl}/dashboards/${id}`, dashboard);
+}
+
+
+
+blank html
+<div class="blank-dashboard-container">
+  <h2>{{ isEditMode ? 'Edit Dashboard' : 'Create New Dashboard' }}</h2>
+
+  <div class="steps">
+    <div
+      class="step"
+      *ngFor="let step of steps; let i = index"
+      [class.active]="i === currentStep"
+    >
+      {{ step }}
+    </div>
+  </div>
+
+  <form [formGroup]="dashboardForm" (ngSubmit)="onSubmit()">
+    <!-- Step 1: Basic Info -->
+    <div *ngIf="currentStep === 0">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" placeholder="Dashboard Name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" placeholder="Description"></textarea>
+      </mat-form-field>
+    </div>
+
+    <!-- Step 2: Settings -->
+    <div *ngIf="currentStep === 1">
+      <mat-checkbox formControlName="public">Make Public</mat-checkbox>
+      <p><strong>Visibility:</strong> {{ dashboardForm.value.public ? 'Public' : 'Private' }}</p>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn secondary" (click)="prevStep()" *ngIf="currentStep > 0">Previous</button>
+      <button type="button" class="btn secondary" (click)="nextStep()" *ngIf="currentStep < steps.length - 1">Next</button>
+      <button type="submit" class="btn primary" *ngIf="currentStep === steps.length - 1">
+        {{ isEditMode ? 'Update' : 'Finish' }}
+      </button>
+      <button type="button" class="btn cancel" (click)="cancel()">Cancel</button>
+    </div>
+  </form>
+</div>
+
+
