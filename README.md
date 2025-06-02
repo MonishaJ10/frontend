@@ -3105,4 +3105,29 @@ if (this.isEditMode && this.dashboardToEdit?.id) {
 
 
 
+submitDashboard() {
+  const dashboardPayload: Dashboardd = {
+    name: this.formData.name,
+    description: this.formData.description,
+    isPublic: this.formData.visibility === 'Public',
+    chartType: this.selectedChart,
+    model: this.model,
+    groupBy: this.groupBy,
+    aggregation: this.aggregation,
+    aggregationField: this.aggregationField
+  };
 
+  if (this.isEditMode && this.dashboardToEdit?.id) {
+    // UPDATE existing dashboard
+    this.dashboardService.updateDashboard(this.dashboardToEdit.id, dashboardPayload).subscribe({
+      next: () => this.dashboardClose.emit(),
+      error: error => console.error('Update failed', error)
+    });
+  } else {
+    // CREATE new dashboard
+    this.dashboardService.createDashboard(dashboardPayload).subscribe({
+      next: () => this.dashboardClose.emit(),
+      error: error => console.error('Create failed', error)
+    });
+  }
+}
